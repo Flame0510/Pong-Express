@@ -5,7 +5,7 @@ import cors from "cors";
 
 import { Server } from "socket.io";
 
-export const io = new Server(4000, {
+export const io = new Server({
   cors: {
     origin: "http://localhost:8100",
   },

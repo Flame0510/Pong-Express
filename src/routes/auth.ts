@@ -23,6 +23,8 @@ router.post(
   }
 );
 
+router.get("/sessions", (_, res) => res.status(200).json(sessions));
+
 router.get("/me/:playerId", ({ params: { playerId } }, res) => {
   const user = sessions.find(({ id }) => id === playerId);
 
