@@ -1,2 +1,2 @@
-import { ISession } from './../models/session';
-export const sessions: ISession[] = [];
+import { Session } from './../models/session';
+export const sessions: Session[] = [];

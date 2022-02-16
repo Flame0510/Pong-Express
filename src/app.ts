@@ -7,14 +7,11 @@ import { Server } from "socket.io";
 
 export const io = new Server(4000, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["my-custom-header"],
-    credentials: true,
+    origin: "http://localhost:8100",
   },
 });
 
-io.on("connection", (socket) => console.log(socket.id));
+io.on("connection", (socket) => socket.join("match1"));
 
 const app = express();
 app.use(express.json());

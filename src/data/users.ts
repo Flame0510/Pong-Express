@@ -1,2 +1,5 @@
-import { IUser } from "./../models/user";
-export const users: IUser[] = [{ id: "1", username: "mike", password: "mike" }];
+import { User } from "./../models/user";
+export const users: User[] = [
+  { id: "1", username: "mike", password: "mike" },
+  { id: "2", username: "fede", password: "fede" },
+];

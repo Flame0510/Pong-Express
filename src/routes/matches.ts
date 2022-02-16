@@ -2,6 +2,9 @@ import uuid4 from "uuid4";
 import express from "express";
 import { matches } from "../data/matches";
 import { users } from "../data/users";
+import { sessions } from "../data/sessions";
+import { Socket } from "socket.io";
+import { io } from "../app";
 
 const router = express.Router();
 
@@ -13,16 +16,22 @@ router.get("/:id", ({ params: { id } }: { params: { id: string } }, res) => {
     .json(match ? match : { message: "Match not found" });
 });
 
-router.post("/create", ({ headers: { id } }, res) => {
-  if (users.find((user) => user.id === id)) {
+router.post("/", ({ headers: { playerId } }: any, res) => {
+  if (users.find((user) => user.id === playerId)) {
     const match = {
       id: uuid4(),
-      player1: id,
-      player2: null,
+
+      player1: playerId,
       player1Position: 200,
+
+      player2: null,
       player2Position: 200,
+
       ballPosition: { x: 200, y: 200 },
+
+      status: "pre_start",
     };
+
     matches.push(match);
 
     res.status(200).json(match);
@@ -33,23 +42,29 @@ router.post("/create", ({ headers: { id } }, res) => {
 
 router.post("/:id/play", ({ params: { id } }, res) => {
   const matchIndex = matches.findIndex((match) => match.id === id);
+
   if (matchIndex !== -1) {
-    let player1Position = matches[matchIndex].player1Position;
-    let player2Position = matches[matchIndex].player2Position;
-    const ballPosition = matches[matchIndex].ballPosition;
+    matches[matchIndex].status = "in_progress";
+
+    const playerWidth = 100;
+    const playerHeight = 20;
+
+    let player1Position = matches[matchIndex].player1Position - playerWidth / 2;
+    let player2Position = matches[matchIndex].player2Position - playerWidth / 2;
+    const ballPosition = { x: 150, y: 280 };
 
     let ballXDirection = 1;
     let ballYDirection = 1;
 
     let player2Direction = 1;
 
-    const playerWidth = 100;
-    const playerHeight = 20;
-
     const windowWidth: number = 300;
-    const windowHeight: number = 600;
+    const windowHeight: number = 560;
 
     const ballMoving = () => {
+      const prevBallXDirection = ballXDirection;
+      const prevBallYDirection = ballYDirection;
+
       const position = {
         x:
           ballXDirection > 0
@@ -77,6 +92,9 @@ router.post("/:id/play", ({ params: { id } }, res) => {
             : (ballYDirection = 1),
       };
 
+      /* ballXDirection !== prevBallXDirection && io.to("match1").emit("sendData");
+      ballYDirection !== prevBallYDirection && io.to("match1").emit("sendData"); */
+
       matches[matchIndex].ballPosition = position;
     };
 
@@ -93,21 +111,47 @@ router.post("/:id/play", ({ params: { id } }, res) => {
       matches[matchIndex].player2Position = position;
     };
 
-    setInterval(() => {
+    const gameRun = setInterval(() => {
       ballMoving();
-      //player2AutoMoving();
-    }, 1);
+
+      if (matches[matchIndex].status === "finished") {
+        clearInterval(gameRun);
+
+        res.status(200).json({ message: "Match stopped" });
+      }
+    }, 10);
+  }
+});
+
+router.post("/:id/stop", ({ params: { id } }, res) => {
+  const matchIndex = matches.findIndex((match) => match.id === id);
+
+  if (matchIndex !== -1) {
+    matches[matchIndex].status = "finished";
+
+    res.status(200).json(matches[matchIndex]);
+  } else {
+    res.status(404).json({ message: "Match not found" });
   }
 });
 
 router.post(
   "/:id/move",
-  ({ params: { id }, body: { playerPosition } }, res) => {
+  ({ params: { id }, body: { playerId, playerPosition } }, res) => {
     const matchIndex = matches.findIndex((match) => match.id === id);
     if (matchIndex !== -1) {
-      matches[matchIndex].player1Position = playerPosition;
-      matches[matchIndex].player2Position = 200 - playerPosition;
+      //playerId = sessions.find(({ userId }) => userId === playerId);
 
+      /* console.log(matches[matchIndex].player1 + " - " + playerId);
+      console.log(matches[matchIndex].player2 + " - " + playerId); */
+
+      matches[matchIndex].player1 === playerId
+        ? (matches[matchIndex].player1Position = playerPosition)
+        : matches[matchIndex].player2 === playerId
+        ? (matches[matchIndex].player2Position = playerPosition)
+        : res.status(404).json({ message: "Wrong player ID" });
+
+      io.emit("playerMoved");
       res.status(200).json(matches[matchIndex]);
     } else {
       res.status(404).json({ message: "Match not found" });
