@@ -1,4 +1,4 @@
-export interface IMatch {
+export interface Match {
   id: string;
 
   player1: string;
@@ -8,6 +8,9 @@ export interface IMatch {
   player2Position: number;
 
   ballPosition: ICoordinates;
+
+  ballXDirection: number;
+  ballYDirection: number;
 
   status: string;
 }

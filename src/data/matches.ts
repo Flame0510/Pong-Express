@@ -1,5 +1,5 @@
-import { IMatch } from "./../models/match";
-export const matches: IMatch[] = [
+import { Match } from "./../models/match";
+export const matches: Match[] = [
   {
     id: "1",
 
@@ -11,6 +11,9 @@ export const matches: IMatch[] = [
 
     ballPosition: { x: 200, y: 200 },
 
-    status: "pre_start"
+    ballXDirection: 1,
+    ballYDirection: 1,
+
+    status: "pre_start",
   },
 ];

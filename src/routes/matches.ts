@@ -29,6 +29,9 @@ router.post("/", ({ headers: { playerId } }: any, res) => {
 
       ballPosition: { x: 200, y: 200 },
 
+      ballXDirection: 1,
+      ballYDirection: 1,
+
       status: "pre_start",
     };
 
@@ -49,9 +52,7 @@ router.post("/:id/play", ({ params: { id } }, res) => {
     const playerWidth = 100;
     const playerHeight = 20;
 
-    let player1Position = matches[matchIndex].player1Position - playerWidth / 2;
-    let player2Position = matches[matchIndex].player2Position - playerWidth / 2;
-    const ballPosition = { x: 150, y: 280 };
+    const ballPosition = { x: 150, y: 250 };
 
     let ballXDirection = 1;
     let ballYDirection = 1;
@@ -59,9 +60,12 @@ router.post("/:id/play", ({ params: { id } }, res) => {
     let player2Direction = 1;
 
     const windowWidth: number = 300;
-    const windowHeight: number = 560;
+    const windowHeight: number = 500;
 
     const ballMoving = () => {
+      let player1Position = matches[matchIndex].player1Position;
+      let player2Position = matches[matchIndex].player2Position;
+
       const prevBallXDirection = ballXDirection;
       const prevBallYDirection = ballYDirection;
 
@@ -71,23 +75,23 @@ router.post("/:id/play", ({ params: { id } }, res) => {
             ? ballPosition.x < windowWidth - 20
               ? ballPosition.x++
               : (ballXDirection = -1)
-            : ballPosition.x-- > 0
+            : ballPosition.x > 0
             ? ballPosition.x--
             : (ballXDirection = 1),
         y:
           ballYDirection > 0
-            ? ballPosition.y > windowHeight - (playerHeight + 30) &&
-              ballPosition.x > player1Position &&
+            ? ballPosition.y + 20 > windowHeight - (playerHeight + 10) &&
+              ballPosition.x + 20 > player1Position &&
               ballPosition.x < player1Position + playerWidth
               ? (ballYDirection = -1)
-              : ballPosition.y < windowHeight - 20
+              : ballPosition.y + 20 < windowHeight
               ? ballPosition.y++
               : (ballYDirection = -1)
-            : ballPosition.y-- < playerHeight + 20 &&
+            : ballPosition.y < playerHeight + 20 &&
               ballPosition.x > player2Position &&
               ballPosition.x < player2Position + playerWidth
             ? (ballYDirection = 1)
-            : ballPosition.y-- > 0
+            : ballPosition.y > 0
             ? ballPosition.y--
             : (ballYDirection = 1),
       };
@@ -96,9 +100,13 @@ router.post("/:id/play", ({ params: { id } }, res) => {
       ballYDirection !== prevBallYDirection && io.to("match1").emit("sendData"); */
 
       matches[matchIndex].ballPosition = position;
+      matches[matchIndex].ballXDirection = ballXDirection;
+      matches[matchIndex].ballYDirection = ballYDirection;
     };
 
     const player2AutoMoving = () => {
+      let player2Position = matches[matchIndex].player2Position;
+
       const position =
         player2Direction > 0
           ? player2Position + playerWidth < windowWidth
@@ -119,7 +127,7 @@ router.post("/:id/play", ({ params: { id } }, res) => {
 
         res.status(200).json({ message: "Match stopped" });
       }
-    }, 10);
+    }, 5);
   }
 });
 

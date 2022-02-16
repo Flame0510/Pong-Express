@@ -26,6 +26,8 @@ router.post("/", function (_a, res) {
             player2: null,
             player2Position: 200,
             ballPosition: { x: 200, y: 200 },
+            ballXDirection: 1,
+            ballYDirection: 1,
             status: "pre_start",
         };
         matches_1.matches.push(match);
@@ -42,15 +44,15 @@ router.post("/:id/play", function (_a, res) {
         matches_1.matches[matchIndex].status = "in_progress";
         var playerWidth_1 = 100;
         var playerHeight_1 = 20;
-        var player1Position_1 = matches_1.matches[matchIndex].player1Position - playerWidth_1 / 2;
-        var player2Position_1 = matches_1.matches[matchIndex].player2Position - playerWidth_1 / 2;
-        var ballPosition_1 = { x: 150, y: 280 };
+        var ballPosition_1 = { x: 150, y: 250 };
         var ballXDirection_1 = 1;
         var ballYDirection_1 = 1;
         var player2Direction_1 = 1;
         var windowWidth_1 = 300;
-        var windowHeight_1 = 560;
+        var windowHeight_1 = 500;
         var ballMoving_1 = function () {
+            var player1Position = matches_1.matches[matchIndex].player1Position;
+            var player2Position = matches_1.matches[matchIndex].player2Position;
             var prevBallXDirection = ballXDirection_1;
             var prevBallYDirection = ballYDirection_1;
             var position = {
@@ -58,36 +60,39 @@ router.post("/:id/play", function (_a, res) {
                     ? ballPosition_1.x < windowWidth_1 - 20
                         ? ballPosition_1.x++
                         : (ballXDirection_1 = -1)
-                    : ballPosition_1.x-- > 0
+                    : ballPosition_1.x > 0
                         ? ballPosition_1.x--
                         : (ballXDirection_1 = 1),
                 y: ballYDirection_1 > 0
-                    ? ballPosition_1.y > windowHeight_1 - (playerHeight_1 + 30) &&
-                        ballPosition_1.x > player1Position_1 &&
-                        ballPosition_1.x < player1Position_1 + playerWidth_1
+                    ? ballPosition_1.y + 20 > windowHeight_1 - (playerHeight_1 + 10) &&
+                        ballPosition_1.x + 20 > player1Position &&
+                        ballPosition_1.x < player1Position + playerWidth_1
                         ? (ballYDirection_1 = -1)
-                        : ballPosition_1.y < windowHeight_1 - 20
+                        : ballPosition_1.y + 20 < windowHeight_1
                             ? ballPosition_1.y++
                             : (ballYDirection_1 = -1)
-                    : ballPosition_1.y-- < playerHeight_1 + 20 &&
-                        ballPosition_1.x > player2Position_1 &&
-                        ballPosition_1.x < player2Position_1 + playerWidth_1
+                    : ballPosition_1.y < playerHeight_1 + 20 &&
+                        ballPosition_1.x > player2Position &&
+                        ballPosition_1.x < player2Position + playerWidth_1
                         ? (ballYDirection_1 = 1)
-                        : ballPosition_1.y-- > 0
+                        : ballPosition_1.y > 0
                             ? ballPosition_1.y--
                             : (ballYDirection_1 = 1),
             };
             /* ballXDirection !== prevBallXDirection && io.to("match1").emit("sendData");
             ballYDirection !== prevBallYDirection && io.to("match1").emit("sendData"); */
             matches_1.matches[matchIndex].ballPosition = position;
+            matches_1.matches[matchIndex].ballXDirection = ballXDirection_1;
+            matches_1.matches[matchIndex].ballYDirection = ballYDirection_1;
         };
         var player2AutoMoving = function () {
+            var player2Position = matches_1.matches[matchIndex].player2Position;
             var position = player2Direction_1 > 0
-                ? player2Position_1 + playerWidth_1 < windowWidth_1
-                    ? player2Position_1++
+                ? player2Position + playerWidth_1 < windowWidth_1
+                    ? player2Position++
                     : (player2Direction_1 = -1)
-                : player2Position_1-- > 0
-                    ? player2Position_1--
+                : player2Position-- > 0
+                    ? player2Position--
                     : (player2Direction_1 = 1);
             matches_1.matches[matchIndex].player2Position = position;
         };
@@ -97,7 +102,7 @@ router.post("/:id/play", function (_a, res) {
                 clearInterval(gameRun_1);
                 res.status(200).json({ message: "Match stopped" });
             }
-        }, 10);
+        }, 5);
     }
 });
 router.post("/:id/stop", function (_a, res) {

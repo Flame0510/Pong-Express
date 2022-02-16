@@ -9,6 +9,8 @@ exports.matches = [
         player2: "2",
         player2Position: 200,
         ballPosition: { x: 200, y: 200 },
-        status: "pre_start"
+        ballXDirection: 1,
+        ballYDirection: 1,
+        status: "pre_start",
     },
 ];

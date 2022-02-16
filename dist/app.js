@@ -22,4 +22,4 @@ var auth_1 = __importDefault(require("./routes/auth"));
 var matches_1 = __importDefault(require("./routes/matches"));
 app.use("/auth", auth_1.default);
 app.use("/matches", matches_1.default);
-httpServer.listen(process.env.PORT || 5000);
+httpServer.listen(process.env.PORT || 3000);

@@ -25,4 +25,4 @@ import matches from "./routes/matches";
 app.use("/auth", auth);
 app.use("/matches", matches);
 
-httpServer.listen(process.env.PORT || 5000);
+httpServer.listen(process.env.PORT || 3000);
