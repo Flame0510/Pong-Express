@@ -7,12 +7,24 @@ var express_1 = __importDefault(require("express"));
 var uuid4_1 = __importDefault(require("uuid4"));
 var users_1 = require("../data/users");
 var sessions_1 = require("../data/sessions");
+var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var checkToken_1 = __importDefault(require("../middlewares/checkToken"));
 var router = express_1.default.Router();
 router.post("/login", function (_a, res) {
     var _b = _a.body, username = _b.username, password = _b.password;
     var user = users_1.users.find(function (user) { return user.username === username && user.password === password; });
     if (user) {
-        var session = { id: (0, uuid4_1.default)(), userId: user.id, username: username, password: password };
+        var session = {
+            id: (0, uuid4_1.default)(),
+            userId: user.id,
+            token: jsonwebtoken_1.default.sign({ data: Math.floor(Date.now() / 1000) }, username),
+            lastAccess: new Date()
+                .toLocaleString()
+                .split("/")
+                .join("-")
+                .split(",")
+                .join(" -"),
+        };
         sessions_1.sessions.push(session);
         res.status(200).json(session);
     }
@@ -21,15 +33,23 @@ router.post("/login", function (_a, res) {
     }
 });
 router.get("/sessions", function (_, res) { return res.status(200).json(sessions_1.sessions); });
-router.get("/me/:playerId", function (_a, res) {
-    var playerId = _a.params.playerId;
-    var user = sessions_1.sessions.find(function (_a) {
+router.get("/token", checkToken_1.default, function (_, res) {
+    res.status(200).json(res.locals.checkTokenResponse);
+});
+router.get("/session", checkToken_1.default, function (_, res) {
+    return res
+        .status(200)
+        .json(sessions_1.sessions.find(function (_a) {
+        var userId = _a.userId;
+        return res.locals.checkTokenResponse.userId === userId;
+    }));
+});
+router.get("/me", checkToken_1.default, function (_, res) {
+    return res
+        .status(200)
+        .json(users_1.users.find(function (_a) {
         var id = _a.id;
-        return id === playerId;
-    });
-    console.log(playerId);
-    res
-        .status(user ? 200 : 404)
-        .json(users_1.users ? user : { message: "Not logged user" });
+        return res.locals.checkTokenResponse.userId === id;
+    }));
 });
 exports.default = router;

@@ -4,6 +4,9 @@ import { User } from "../models/user";
 import { users } from "../data/users";
 import { sessions } from "../data/sessions";
 
+import jwt from "jsonwebtoken";
+import checkToken from "../middlewares/checkToken";
+
 const router = express.Router();
 
 router.post(
@@ -14,7 +17,18 @@ router.post(
     );
 
     if (user) {
-      const session = { id: uuid4(), userId: user.id, username, password };
+      const session = {
+        id: uuid4(),
+        userId: user.id,
+        token: jwt.sign({ data: Math.floor(Date.now() / 1000) }, username),
+        lastAccess: new Date()
+          .toLocaleString()
+          .split("/")
+          .join("-")
+          .split(",")
+          .join(" -"),
+      };
+
       sessions.push(session);
       res.status(200).json(session);
     } else {
@@ -23,16 +37,26 @@ router.post(
   }
 );
 
-router.get("/sessions", (_, res) => res.status(200).json(sessions));
+router.get("/sessions", checkToken, (_, res) => res.status(200).json(sessions));
 
-router.get("/me/:playerId", ({ params: { playerId } }, res) => {
-  const user = sessions.find(({ id }) => id === playerId);
-
-  console.log(playerId);
-
-  res
-    .status(user ? 200 : 404)
-    .json(users ? user : { message: "Not logged user" });
+router.get("/token", checkToken, (_, res) => {
+  res.status(200).json(res.locals.checkTokenResponse);
 });
+
+router.get("/session", checkToken, (_, res) =>
+  res
+    .status(200)
+    .json(
+      sessions.find(
+        ({ userId }) => res.locals.checkTokenResponse.userId === userId
+      )
+    )
+);
+
+router.get("/me", checkToken, (_, res) =>
+  res
+    .status(200)
+    .json(users.find(({ id }) => res.locals.checkTokenResponse.userId === id))
+);
 
 export default router;

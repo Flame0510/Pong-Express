@@ -8,6 +8,7 @@ var express_1 = __importDefault(require("express"));
 var matches_1 = require("../data/matches");
 var users_1 = require("../data/users");
 var app_1 = require("../app");
+var checkToken_1 = __importDefault(require("../middlewares/checkToken"));
 var router = express_1.default.Router();
 router.get("/:id", function (_a, res) {
     var id = _a.params.id;
@@ -16,26 +17,32 @@ router.get("/:id", function (_a, res) {
         .status(match ? 200 : 404)
         .json(match ? match : { message: "Match not found" });
 });
-router.post("/", function (_a, res) {
-    var playerId = _a.headers.playerId;
-    if (users_1.users.find(function (user) { return user.id === playerId; })) {
-        var match = {
-            id: (0, uuid4_1.default)(),
-            player1: playerId,
-            player1Position: 200,
-            player2: null,
-            player2Position: 200,
-            ballPosition: { x: 200, y: 200 },
-            ballXDirection: 1,
-            ballYDirection: 1,
-            status: "pre_start",
-        };
-        matches_1.matches.push(match);
-        res.status(200).json(match);
-    }
-    else {
-        res.status(404).json({ message: "Wrong ID" });
-    }
+router.get("/", function (_, res) {
+    return matches_1.matches.length > 0
+        ? res.status(200).json(matches_1.matches)
+        : res.status(404).json({ message: "There aren't matches" });
+});
+router.post("/", checkToken_1.default, function (_, res) {
+    var user = users_1.users.find(function (_a) {
+        var id = _a.id;
+        return res.locals.checkTokenResponse.userId === id;
+    });
+    var match = {
+        id: (0, uuid4_1.default)(),
+        player1: {
+            id: user.id,
+            username: user.username,
+        },
+        player1Position: 200,
+        player2: null,
+        player2Position: 200,
+        ballPosition: { x: 200, y: 200 },
+        ballXDirection: 1,
+        ballYDirection: 1,
+        status: "pre_start",
+    };
+    matches_1.matches.push(match);
+    res.status(200).json(match);
 });
 router.post("/:id/play", function (_a, res) {
     var id = _a.params.id;

@@ -2,9 +2,9 @@ import uuid4 from "uuid4";
 import express from "express";
 import { matches } from "../data/matches";
 import { users } from "../data/users";
-import { sessions } from "../data/sessions";
 import { Socket } from "socket.io";
 import { io } from "../app";
+import checkToken from "../middlewares/checkToken";
 
 const router = express.Router();
 
@@ -16,31 +16,40 @@ router.get("/:id", ({ params: { id } }: { params: { id: string } }, res) => {
     .json(match ? match : { message: "Match not found" });
 });
 
-router.post("/", ({ headers: { playerId } }: any, res) => {
-  if (users.find((user) => user.id === playerId)) {
-    const match = {
-      id: uuid4(),
+router.get("/", (_, res) =>
+  matches.length > 0
+    ? res.status(200).json(matches)
+    : res.status(404).json({ message: "There aren't matches" })
+);
 
-      player1: playerId,
-      player1Position: 200,
+router.post("/", checkToken, (_, res) => {
+  const user = users.find(
+    ({ id }) => res.locals.checkTokenResponse.userId === id
+  );
 
-      player2: null,
-      player2Position: 200,
+  const match = {
+    id: uuid4(),
 
-      ballPosition: { x: 200, y: 200 },
+    player1: {
+      id: user!.id,
+      username: user!.username,
+    },
+    player1Position: 200,
 
-      ballXDirection: 1,
-      ballYDirection: 1,
+    player2: null,
+    player2Position: 200,
 
-      status: "pre_start",
-    };
+    ballPosition: { x: 200, y: 200 },
 
-    matches.push(match);
+    ballXDirection: 1,
+    ballYDirection: 1,
 
-    res.status(200).json(match);
-  } else {
-    res.status(404).json({ message: "Wrong ID" });
-  }
+    status: "pre_start",
+  };
+
+  matches.push(match);
+
+  res.status(200).json(match);
 });
 
 router.post("/:id/play", ({ params: { id } }, res) => {
