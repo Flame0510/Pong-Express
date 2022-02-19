@@ -5,6 +5,8 @@ import cors from "cors";
 
 import { Server } from "socket.io";
 
+import { socketConnection } from "./socket";
+
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: true }));
@@ -13,11 +15,11 @@ const httpServer = createServer(app);
 
 export const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:8100",
+    origin: "*",
   },
 });
 
-io.on("connection", (socket) => socket.join("match1"));
+socketConnection();
 
 import auth from "./routes/auth";
 import matches from "./routes/matches";

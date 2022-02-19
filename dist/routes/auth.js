@@ -32,7 +32,7 @@ router.post("/login", function (_a, res) {
         res.status(404).json({ message: "Wrong Credentials" });
     }
 });
-router.get("/sessions", function (_, res) { return res.status(200).json(sessions_1.sessions); });
+router.get("/sessions", checkToken_1.default, function (_, res) { return res.status(200).json(sessions_1.sessions); });
 router.get("/token", checkToken_1.default, function (_, res) {
     res.status(200).json(res.locals.checkTokenResponse);
 });

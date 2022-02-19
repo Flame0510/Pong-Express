@@ -5,6 +5,7 @@ import { users } from "../data/users";
 import { Socket } from "socket.io";
 import { io } from "../app";
 import checkToken from "../middlewares/checkToken";
+import { ICoordinates, Match, Points } from "../models/match";
 
 const router = express.Router();
 
@@ -39,6 +40,10 @@ router.post("/", checkToken, (_, res) => {
     player2: null,
     player2Position: 200,
 
+    points: { player1: 0, player2: 0 },
+
+    lastPoint: null,
+
     ballPosition: { x: 200, y: 200 },
 
     ballXDirection: 1,
@@ -49,22 +54,55 @@ router.post("/", checkToken, (_, res) => {
 
   matches.push(match);
 
+  io.emit("refreshMatches");
+
   res.status(200).json(match);
 });
 
-router.post("/:id/play", ({ params: { id } }, res) => {
+router.put("/:id/join", checkToken, ({ params: { id } }, res) => {
+  const matchIndex = matches.findIndex((match) => match.id === id);
+
+  if (matchIndex !== -1) {
+    const user = users.find(
+      (user) => user.id === res.locals.checkTokenResponse.userId
+    );
+
+    if (matches[matchIndex].player1.id !== user!.id) {
+      matches[matchIndex].player2 = {
+        id: user!.id,
+        username: user!.username,
+      };
+
+      io.to(id).emit("player2-join");
+
+      res.status(200).json(matches[matchIndex]);
+    } else {
+      res.status(400).json({
+        message: "You can't be player 1 and player 2 in the same match",
+      });
+    }
+  } else {
+    res.status(404).json({ message: "Match not found" });
+  }
+});
+
+router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
   const matchIndex = matches.findIndex((match) => match.id === id);
 
   if (matchIndex !== -1) {
     matches[matchIndex].status = "in_progress";
 
+    const matchId = matches[matchIndex].id;
+
     const playerWidth = 100;
     const playerHeight = 20;
 
-    const ballPosition = { x: 150, y: 250 };
+    const ballStartPosition: ICoordinates = { x: 150, y: 250 };
 
-    let ballXDirection = 1;
-    let ballYDirection = 1;
+    const ballPosition = ballStartPosition;
+
+    let ballXDirection = matches[matchIndex].ballXDirection;
+    let ballYDirection = matches[matchIndex].ballYDirection;
 
     let player2Direction = 1;
 
@@ -74,6 +112,8 @@ router.post("/:id/play", ({ params: { id } }, res) => {
     const ballMoving = () => {
       let player1Position = matches[matchIndex].player1Position;
       let player2Position = matches[matchIndex].player2Position;
+
+      let points = matches[matchIndex].points;
 
       const prevBallXDirection = ballXDirection;
       const prevBallYDirection = ballYDirection;
@@ -95,22 +135,54 @@ router.post("/:id/play", ({ params: { id } }, res) => {
               ? (ballYDirection = -1)
               : ballPosition.y + 20 < windowHeight
               ? ballPosition.y++
-              : (ballYDirection = -1)
+              : player2Point(-1, points)
             : ballPosition.y < playerHeight + 20 &&
               ballPosition.x > player2Position &&
               ballPosition.x < player2Position + playerWidth
             ? (ballYDirection = 1)
             : ballPosition.y > 0
             ? ballPosition.y--
-            : (ballYDirection = 1),
+            : player1Point(1, points),
       };
 
-      /* ballXDirection !== prevBallXDirection && io.to("match1").emit("sendData");
-      ballYDirection !== prevBallYDirection && io.to("match1").emit("sendData"); */
+      // ballXDirection !== prevBallXDirection && io.to("match1").emit("sendData");
+      //ballYDirection !== prevBallYDirection && io.to("match1").emit("sendData");
+
+      //ballYDirection !== prevBallYDirection && pause();
+
+      matches[matchIndex].points = points;
 
       matches[matchIndex].ballPosition = position;
       matches[matchIndex].ballXDirection = ballXDirection;
       matches[matchIndex].ballYDirection = ballYDirection;
+    };
+
+    const pause = () => (matches[matchIndex].status = "pause");
+
+    const resetBallPosition = () =>
+      (matches[matchIndex].ballPosition = ballStartPosition);
+
+    const player1Point = (direction: number, points: Points) => {
+      points.player1++;
+      matches[matchIndex].lastPoint = matches[matchIndex].player1;
+      //matches[matchIndex].ballYDirection = 1;
+      //pause();
+      //resetBallPosition();
+
+      io.to(matchId).emit("point", matches[matchIndex].player1);
+
+      return (ballYDirection = direction);
+    };
+
+    const player2Point = (direction: number, points: Points) => {
+      points.player2++;
+      matches[matchIndex].lastPoint = matches[matchIndex].player2;
+      //matches[matchIndex].ballYDirection = -1;
+      //pause();
+      //resetBallPosition();
+      io.to(matchId).emit("point", matches[matchIndex].player2);
+
+      return (ballYDirection = direction);
     };
 
     const player2AutoMoving = () => {
@@ -131,7 +203,10 @@ router.post("/:id/play", ({ params: { id } }, res) => {
     const gameRun = setInterval(() => {
       ballMoving();
 
-      if (matches[matchIndex].status === "finished") {
+      if (
+        matches[matchIndex].status === "pause" ||
+        matches[matchIndex].status === "finished"
+      ) {
         clearInterval(gameRun);
 
         res.status(200).json({ message: "Match stopped" });
@@ -140,11 +215,11 @@ router.post("/:id/play", ({ params: { id } }, res) => {
   }
 });
 
-router.post("/:id/stop", ({ params: { id } }, res) => {
+router.post("/:id/status", ({ params: { id }, body: { status } }, res) => {
   const matchIndex = matches.findIndex((match) => match.id === id);
 
   if (matchIndex !== -1) {
-    matches[matchIndex].status = "finished";
+    matches[matchIndex].status = status;
 
     res.status(200).json(matches[matchIndex]);
   } else {
@@ -162,9 +237,9 @@ router.post(
       /* console.log(matches[matchIndex].player1 + " - " + playerId);
       console.log(matches[matchIndex].player2 + " - " + playerId); */
 
-      matches[matchIndex].player1 === playerId
+      matches[matchIndex].player1.id === playerId
         ? (matches[matchIndex].player1Position = playerPosition)
-        : matches[matchIndex].player2 === playerId
+        : matches[matchIndex].player2?.id === playerId
         ? (matches[matchIndex].player2Position = playerPosition)
         : res.status(404).json({ message: "Wrong player ID" });
 

@@ -7,6 +7,10 @@ export interface Match {
   player2: Player | null;
   player2Position: number;
 
+  points: Points;
+
+  lastPoint: Player | null;
+
   ballPosition: ICoordinates;
 
   ballXDirection: number;
@@ -15,12 +19,17 @@ export interface Match {
   status: string;
 }
 
-interface Player {
+export interface Points {
+  player1: number;
+  player2: number;
+}
+
+export interface Player {
   id: string;
   username: string;
 }
 
-interface ICoordinates {
+export interface ICoordinates {
   x: number;
   y: number;
 }
