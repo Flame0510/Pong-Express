@@ -58,6 +58,7 @@ router.put("/:id/join", checkToken_1.default, function (_a, res) {
                 username: user.username,
             };
             app_1.io.to(id).emit("player2-join");
+            app_1.io.emit("refreshMatches");
             res.status(200).json(matches_1.matches[matchIndex]);
         }
         else {
@@ -76,6 +77,7 @@ router.post("/:id/play", checkToken_1.default, function (_a, res) {
     if (matchIndex !== -1) {
         matches_1.matches[matchIndex].status = "in_progress";
         var matchId_1 = matches_1.matches[matchIndex].id;
+        var pointsToWin_1 = 6;
         var playerWidth_1 = 100;
         var playerHeight_1 = 20;
         var ballStartPosition_1 = { x: 150, y: 250 };
@@ -123,27 +125,43 @@ router.post("/:id/play", checkToken_1.default, function (_a, res) {
             matches_1.matches[matchIndex].ballXDirection = ballXDirection_1;
             matches_1.matches[matchIndex].ballYDirection = ballYDirection_1;
         };
-        var pause = function () { return (matches_1.matches[matchIndex].status = "pause"); };
+        var pause_1 = function () { return (matches_1.matches[matchIndex].status = "pause"); };
         var resetBallPosition = function () {
             return (matches_1.matches[matchIndex].ballPosition = ballStartPosition_1);
         };
         var player1Point_1 = function (direction, points) {
+            pause_1();
             points.player1++;
-            matches_1.matches[matchIndex].lastPoint = matches_1.matches[matchIndex].player1;
-            //matches[matchIndex].ballYDirection = 1;
-            //pause();
-            //resetBallPosition();
-            app_1.io.to(matchId_1).emit("point", matches_1.matches[matchIndex].player1);
+            if (points.player1 >= pointsToWin_1) {
+                win_1(true);
+            }
+            else {
+                matches_1.matches[matchIndex].lastPoint = matches_1.matches[matchIndex].player1;
+                //matches[matchIndex].ballYDirection = 1;
+                //pause();
+                //resetBallPosition();
+                app_1.io.to(matchId_1).emit("point", matches_1.matches[matchIndex].player1);
+            }
             return (ballYDirection_1 = direction);
         };
         var player2Point_1 = function (direction, points) {
+            pause_1();
             points.player2++;
-            matches_1.matches[matchIndex].lastPoint = matches_1.matches[matchIndex].player2;
-            //matches[matchIndex].ballYDirection = -1;
-            //pause();
-            //resetBallPosition();
-            app_1.io.to(matchId_1).emit("point", matches_1.matches[matchIndex].player2);
+            if (points.player2 >= pointsToWin_1) {
+                win_1(false);
+            }
+            else {
+                matches_1.matches[matchIndex].lastPoint = matches_1.matches[matchIndex].player2;
+                //matches[matchIndex].ballYDirection = -1;
+                //pause();
+                //resetBallPosition();
+                app_1.io.to(matchId_1).emit("point", matches_1.matches[matchIndex].player2);
+            }
             return (ballYDirection_1 = direction);
+        };
+        var win_1 = function (isPlayer1) {
+            matches_1.matches[matchIndex].status = "finished";
+            app_1.io.to(matchId_1).emit(isPlayer1 ? "player-1-win" : "player-2-win");
         };
         var player2AutoMoving = function () {
             var player2Position = matches_1.matches[matchIndex].player2Position;
@@ -157,13 +175,16 @@ router.post("/:id/play", checkToken_1.default, function (_a, res) {
             matches_1.matches[matchIndex].player2Position = position;
         };
         var gameRun_1 = setInterval(function () {
-            ballMoving_1();
             if (matches_1.matches[matchIndex].status === "pause" ||
                 matches_1.matches[matchIndex].status === "finished") {
                 clearInterval(gameRun_1);
+                app_1.io.emit("refreshMatches");
                 res.status(200).json({ message: "Match stopped" });
             }
-        }, 5);
+            else {
+                ballMoving_1();
+            }
+        }, 3);
     }
 });
 router.post("/:id/status", function (_a, res) {

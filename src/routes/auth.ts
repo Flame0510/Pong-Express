@@ -10,6 +10,21 @@ import checkToken from "../middlewares/checkToken";
 const router = express.Router();
 
 router.post(
+  "/sign-up",
+  ({ body: { username, password } }: { body: User }, res) => {
+    if (users.find((user: User) => user.username === username)) {
+      res.status(409).json({
+        message:
+          "There is another user with this username, please use another username",
+      });
+    } else {
+      const user = { id: uuid4(), username, password };
+      users.push(user), res.status(200).json(user);
+    }
+  }
+);
+
+router.post(
   "/login",
   ({ body: { username, password } }: { body: User }, res) => {
     const user = users.find(

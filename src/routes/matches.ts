@@ -74,6 +74,7 @@ router.put("/:id/join", checkToken, ({ params: { id } }, res) => {
       };
 
       io.to(id).emit("player2-join");
+      io.emit("refreshMatches");
 
       res.status(200).json(matches[matchIndex]);
     } else {
@@ -93,6 +94,8 @@ router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
     matches[matchIndex].status = "in_progress";
 
     const matchId = matches[matchIndex].id;
+
+    const pointsToWin = 6;
 
     const playerWidth = 100;
     const playerHeight = 20;
@@ -163,26 +166,44 @@ router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
       (matches[matchIndex].ballPosition = ballStartPosition);
 
     const player1Point = (direction: number, points: Points) => {
-      points.player1++;
-      matches[matchIndex].lastPoint = matches[matchIndex].player1;
-      //matches[matchIndex].ballYDirection = 1;
-      //pause();
-      //resetBallPosition();
+      pause();
 
-      io.to(matchId).emit("point", matches[matchIndex].player1);
+      points.player1++;
+      if (points.player1 >= pointsToWin) {
+        win(true);
+      } else {
+        matches[matchIndex].lastPoint = matches[matchIndex].player1;
+        //matches[matchIndex].ballYDirection = 1;
+        //pause();
+        //resetBallPosition();
+
+        io.to(matchId).emit("point", matches[matchIndex].player1);
+      }
 
       return (ballYDirection = direction);
     };
 
     const player2Point = (direction: number, points: Points) => {
+      pause();
+
       points.player2++;
-      matches[matchIndex].lastPoint = matches[matchIndex].player2;
-      //matches[matchIndex].ballYDirection = -1;
-      //pause();
-      //resetBallPosition();
-      io.to(matchId).emit("point", matches[matchIndex].player2);
+      if (points.player2 >= pointsToWin) {
+        win(false);
+      } else {
+        matches[matchIndex].lastPoint = matches[matchIndex].player2;
+        //matches[matchIndex].ballYDirection = -1;
+        //pause();
+        //resetBallPosition();
+        io.to(matchId).emit("point", matches[matchIndex].player2);
+      }
 
       return (ballYDirection = direction);
+    };
+
+    const win = (isPlayer1: boolean) => {
+      matches[matchIndex].status = "finished";
+
+      io.to(matchId).emit(isPlayer1 ? "player-1-win" : "player-2-win");
     };
 
     const player2AutoMoving = () => {
@@ -201,17 +222,19 @@ router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
     };
 
     const gameRun = setInterval(() => {
-      ballMoving();
-
       if (
         matches[matchIndex].status === "pause" ||
         matches[matchIndex].status === "finished"
       ) {
         clearInterval(gameRun);
 
+        io.emit("refreshMatches");
+
         res.status(200).json({ message: "Match stopped" });
+      } else {
+        ballMoving();
       }
-    }, 5);
+    }, 3);
   }
 });
 

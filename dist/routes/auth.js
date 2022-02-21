@@ -10,6 +10,18 @@ var sessions_1 = require("../data/sessions");
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 var checkToken_1 = __importDefault(require("../middlewares/checkToken"));
 var router = express_1.default.Router();
+router.post("/sign-up", function (_a, res) {
+    var _b = _a.body, username = _b.username, password = _b.password;
+    if (users_1.users.find(function (user) { return user.username === username; })) {
+        res.status(409).json({
+            message: "There is another user with this username, please use another username",
+        });
+    }
+    else {
+        var user = { id: (0, uuid4_1.default)(), username: username, password: password };
+        users_1.users.push(user), res.status(200).json(user);
+    }
+});
 router.post("/login", function (_a, res) {
     var _b = _a.body, username = _b.username, password = _b.password;
     var user = users_1.users.find(function (user) { return user.username === username && user.password === password; });
