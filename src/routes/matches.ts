@@ -171,6 +171,7 @@ router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
       points.player1++;
       if (points.player1 >= pointsToWin) {
         win(true);
+        points.player1 = pointsToWin;
       } else {
         matches[matchIndex].lastPoint = matches[matchIndex].player1;
         //matches[matchIndex].ballYDirection = 1;
@@ -189,6 +190,7 @@ router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
       points.player2++;
       if (points.player2 >= pointsToWin) {
         win(false);
+        points.player2 = pointsToWin;
       } else {
         matches[matchIndex].lastPoint = matches[matchIndex].player2;
         //matches[matchIndex].ballYDirection = -1;
@@ -204,6 +206,8 @@ router.post("/:id/play", checkToken, ({ params: { id } }, res) => {
       matches[matchIndex].status = "finished";
 
       io.to(matchId).emit(isPlayer1 ? "player-1-win" : "player-2-win");
+
+      io.to(matchId).emit("leave-match");
     };
 
     const player2AutoMoving = () => {

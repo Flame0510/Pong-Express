@@ -14,6 +14,7 @@ var socketConnection = function () {
                 socket.join(matchId);
                 console.log("MATCH ID: ", matchId);
             });
+            socket.on("leave-match", function (matchId) { return (socket.leave(matchId), console.log("MATCH LEAVE:" + matchId)); });
             socket.on("disconnect", function () {
                 var socketListIndex = socketList_1.socketList.findIndex(function (socketListItem) { return socketListItem.socket === socket.id; });
                 socketListIndex !== -1 && socketList_1.socketList.splice(socketListIndex);

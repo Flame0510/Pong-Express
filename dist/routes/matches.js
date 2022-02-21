@@ -162,6 +162,7 @@ router.post("/:id/play", checkToken_1.default, function (_a, res) {
         var win_1 = function (isPlayer1) {
             matches_1.matches[matchIndex].status = "finished";
             app_1.io.to(matchId_1).emit(isPlayer1 ? "player-1-win" : "player-2-win");
+            app_1.io.to(matchId_1).emit("leave-match");
         };
         var player2AutoMoving = function () {
             var player2Position = matches_1.matches[matchIndex].player2Position;

@@ -14,6 +14,13 @@ export const socketConnection = () => {
         console.log("MATCH ID: ", matchId);
       });
 
+      socket.on(
+        "leave-match",
+        (matchId) => (
+          socket.leave(matchId), console.log("MATCH LEAVE:" + matchId)
+        )
+      );
+
       socket.on("disconnect", () => {
         const socketListIndex = socketList.findIndex(
           (socketListItem) => socketListItem.socket === socket.id
